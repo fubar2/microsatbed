@@ -1,5 +1,5 @@
 import argparse
-
+import copy
 
 from pyfastx import Fastx  # 0.5.2
 
@@ -19,6 +19,9 @@ def write_ssrs(args):
     The integers in the call change the minimum repeats for mono-, di-, tri-, tetra-, penta-, hexa-nucleotide repeats
     ssrs = pytrf.STRFinder(name, seq, 10, 6, 4, 3, 3, 3)
     but let's just filter here.
+    NOTE: STRs with dinucleotides GA and AG are reported separately by https://github.com/marbl/seqrequester.
+    The reversed pair STRs are about as common according to the samples shown.
+    So, that's what we do here. Only 'GC,AT,GA,TC' are reported in VGP mode.
     """
     beds = {}
     bednames = args.bed.split(',')
@@ -27,7 +30,6 @@ def write_ssrs(args):
         reportMe = "ALL"
         beds["ALL"] = []
     elif report == "vgp":
-        reportMeR = 'GC,AT,GA,TC,CGAZ,TA,AG,CT'.split(',')
         reportMe = 'GC,AT,GA,TC'.split(',')
         assert len(bednames) == len(
             reportMe
@@ -57,8 +59,9 @@ def write_ssrs(args):
             )
             if report == "all":
                 beds["ALL"].append(row)
-            elif report == "vgp" and ssr.motif in reportMeR:
-                beds[ssr.motif].append(row)
+            elif report == "vgp" and ssr.motif in reportMe:
+                if ssr.motif in reportMe:
+                    beds[ssr.motif].append(row)
             elif report == "nomono" and len(ssr.motif) > 1:
                 beds["ALL"].append(row)
             elif report == "di" and len(ssr.motif) == 2:

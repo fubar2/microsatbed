@@ -1,4 +1,4 @@
-<tool name="microsatbed" id="microsatbed" version="1.3.0" profile="22.05">
+<tool name="short tandem repeats to bed features" id="microsatbed" version="1.3.0" profile="22.05">
   <description>Report short tandem repeats as bed features</description>
   <requirements>
     <requirement version="3.12.3" type="package">python</requirement>
@@ -8,13 +8,13 @@
    <required_files>
       <include path="find_str.py"/>
   </required_files>
-  <version_command><![CDATA[echo "1.3.0"]]></version_command>
+   <version_command><![CDATA[python -c "import pytrf; from importlib.metadata import version; print(version('pytrf'))"]]></version_command>
   <command><![CDATA[python '${__tool_directory__}/find_str.py'
 --fasta
-'$fasta'
+'${reference_genome.fasta}' 
 --bed
 #if $reportme == "VGP":
-  '$bedCG,$bedAT,$bedGA,$bedTC'
+  '$bedGC,$bedAT,$bedGA,$bedTC'
 #else:
   '$bedall'
 #end if
@@ -30,26 +30,42 @@
  --generic
 #end if]]></command>
   <inputs>
-    <param name="fasta" type="data" optional="false" label="Genome to search for short tandem repeats" help="" format="fasta" multiple="false"/>
+    <conditional name="reference_genome">
+        <param name="genome_type_select" type="select" label="Reference genome source" help="Select a built in or history genome for finding STRs">
+            <option value="indexed">Use a Galaxy server built-in genome</option>
+            <option selected="True" value="history">Use a genome fasta file from the current history</option>
+        </param>
+        <when value="indexed">
+            <param name="fasta" type="select" optional="false" multiple="false" label="Select a built in reference genome or custom genome" help="If not listed, add a custom genome or use a history genome">
+                <options from_data_table="all_fasta">
+                    <filter column="2" type="sort_by"/>
+                    <validator message="No genomes are available" type="no_options"/>
+                </options>
+            </param>
+        </when>
+        <when value="history">
+            <param name="fasta" type="data" format="fasta" optional="true" multiple="false" label="Select a reference genome from the current history"/>
+        </when>
+    </conditional>
     <param name="reportme" type="select" label="Select the classes or combinations of STRs to be selected for bed output" help="">
-      <option selected="True" value="VGP">Dinucleotides CG,AT,GA,TC to separate bed files</option>
+      <option selected="True" value="VGP">Dinucleotides GC, AT, GA, TC to separate bed files</option>
       <option value="ALL">All mono--hepta nucleotide STRs to a single bed file</option>
       <option value="NOMONO">All di,tri,tetra,penta and hepta nucleotide STRs to a single bed file - no monomers</option>
-      <option value="DI">All data_formatinucleotide motifs to a single bed file</option>
+      <option value="DI">All dinucleotide motifs to a single bed file</option>
       <option value="TRI">All trinucleotide motifs to a single bed file</option>
       <option value="TETRA">All tetranucleotide motif STRs to a single bed file</option>
       <option value="PENTA">All pentanucleotide motif STRs to a single bed file</option>
       <option value="HEPTA">All heptanucleotide motif STRs to a single bed file</option>
     </param>
-    <param name="perfect" type="select" label="Include all *perfect* STRs" help="Strictly defined STR without any variation at all. Flags can be multiple and will combine. At least one must be set." display="radio">
+    <param name="perfect" type="select" label="Include all *perfect* STRs" help="Strictly defined STR. Flags can be multiple and will combine. At least one must be set." display="radio">
       <option value="set">Set this flag</option>
       <option value="notset">Do not set this flag</option>
     </param>
-    <param name="approximate" type="select" label="Include also all *approximate* STRs allowing for error." help="This gives 3 fold additional bed features compared to the perfect flag. Flags can be multiple and will combine. At least one must be set." display="radio">
+    <param name="approximate" type="select" label="Include also all *approximate* STRs." help="This gives about 3 fold additional bed features compared to the perfect flag. Flags can be multiple and will combine. At least one must be set." display="radio">
       <option value="notset">Do not set this flag</option>
       <option value="set">Set this flag</option>
     </param>
-    <param name="generic" type="select" label="Include all *generic* STRs" help="This gives 10 or more fold additional bed features compared to the perfect flag. Flags can be multiple and will combine. At least one must be set." display="radio">
+    <param name="generic" type="select" label="Include all *generic* STRs" help="This finds many additional bed features compared to the perfect or approximate flags. Flags can be multiple and will combine. At least one must be set." display="radio">
       <option value="notset">Do not set this flag</option>
       <option value="set">Set this flag</option>
     </param>
@@ -58,7 +74,7 @@
     <data name="bedall" format="bed" label="$reportme STR from $fasta.element_identifier" hidden="false">
        <filter>reportme !="VGP"</filter>
     </data>
-    <data name="bedCG" format="bed" label="CG from $fasta.element_identifier" hidden="false">
+    <data name="bedGC" format="bed" label="GC from $fasta.element_identifier" hidden="false">
        <filter>reportme == "VGP"</filter>
     </data>
      <data name="bedAT" format="bed" label="AT from $fasta.element_identifier" hidden="false">
@@ -72,12 +88,15 @@
     </data>
   </outputs>
   <tests>
-    <test  expect_num_outputs="4">
+    <test expect_num_outputs="4">
+      <conditional name="reference_genome">
+          <param name="genome_type_select" value="history"/>
+          <param name="fasta" value="mouse5bit.fa"/>
+      </conditional>
       <output name="bedGA" value="bedGA_sample" compare="diff" lines_diff="0"/>
       <output name="bedTC" value="bedTC_sample" compare="diff" lines_diff="0"/>
-      <output name="bedCG" value="bedCG_sample" compare="diff" lines_diff="0"/>
+      <output name="bedGC" value="bedGC_sample" compare="diff" lines_diff="0"/>
       <output name="bedAT" value="bedAT_sample" compare="diff" lines_diff="0"/>
-      <param name="fasta" value="fasta_sample"/>
       <param name="reportme" value="VGP"/>
       <param name="perfect" value="set"/>
       <param name="approximate" value="notset"/>
