@@ -2,7 +2,7 @@
 
 ### July 11 2024 for the VGP
 
-This code will soon become a Galaxy tool, for building some of the [NIH MARBL T2T assembly polishing](https://github.com/marbl/training) tools as Galaxy workflows.
+Galaxy tool for building some of the [NIH MARBL T2T assembly polishing](https://github.com/marbl/training) tools as Galaxy workflows.
 
  
  See https://pytrf.readthedocs.io/en/latest/ for the pytrf documentation. Definition is quoted here:
@@ -16,7 +16,5 @@ It also can find generic tandem repeats with any size of motif, such as with max
 
 A fasta file must be supplied for processing.
 
-Different subsets of STR may be selected for output. Perfect STRs are the default, but any combination with one or more of pefect, approxinate and generic.
-  
-Designed to build some of the microsatellite tracks from https://github.com/arangrhie/T2T-Polish/tree/master/pattern for the VGP.
+Different subsets of STR may be selected for output. 
  
