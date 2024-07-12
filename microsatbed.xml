@@ -10,25 +10,38 @@
   </required_files>
    <version_command><![CDATA[python -c "import pytrf; from importlib.metadata import version; print(version('pytrf'))"]]></version_command>
   <command><![CDATA[python '${__tool_directory__}/find_str.py'
---fasta
-'${reference_genome.fasta}' 
---bed
-#if $reportme == "VGP":
-  '$bedGC,$bedAT,$bedGA,$bedTC'
+--fasta '${reference_genome.fasta}' 
+--bed '$bed'
+#if $mode_cond.mode == "SPECIFIC":
+ --specific '$mode_cond.specific'
+ --minreps '$mode_cond.minreps'
 #else:
-  '$bedall'
+  #if "MONO" in $mode_cond.subset:
+  --mono
+  #end if
+  #if "DI" in $mode_cond.subset:
+  --di
+  #end if
+  #if "TRI" in $mode_cond.subset:
+  --tri
+  #end if
+  #if "TETRA" in $mode_cond.subset:
+  --tetra
+  #end if
+  #if "PENTA" in $mode_cond.subset:
+  --penta
+  #end if
+  #if "HEXA" in $mode_cond.subset:
+  --hepta
+  #end if
+  --monomin '$mode_cond.monomin'
+  --dimin '$mode_cond.dimin'
+  --trimin '$mode_cond.trimin'
+  --tetramin '$mode_cond.tetramin'
+  --pentamin '$mode_cond.pentamin'
+  --heptamin '$mode_cond.heptamin'
 #end if
---reportme
-'$reportme'
-#if $perfect == "set"
- --perfect
-#end if
-#if $approximate == "set"
- --approximate
-#end if
-#if $generic == "set"
- --generic
-#end if]]></command>
+]]></command>
   <inputs>
     <conditional name="reference_genome">
         <param name="genome_type_select" type="select" label="Reference genome source" help="Select a built in or history genome for finding STRs">
@@ -47,60 +60,67 @@
             <param name="fasta" type="data" format="fasta" optional="true" multiple="false" label="Select a reference genome from the current history"/>
         </when>
     </conditional>
-    <param name="reportme" type="select" label="Select the classes or combinations of STRs to be selected for bed output" help="">
-      <option selected="True" value="VGP">Dinucleotides GC, AT, GA, TC to separate bed files</option>
-      <option value="ALL">All mono--hepta nucleotide STRs to a single bed file</option>
-      <option value="NOMONO">All di,tri,tetra,penta and hepta nucleotide STRs to a single bed file - no monomers</option>
-      <option value="DI">All dinucleotide motifs to a single bed file</option>
-      <option value="TRI">All trinucleotide motifs to a single bed file</option>
-      <option value="TETRA">All tetranucleotide motif STRs to a single bed file</option>
-      <option value="PENTA">All pentanucleotide motif STRs to a single bed file</option>
-      <option value="HEPTA">All heptanucleotide motif STRs to a single bed file</option>
+    <conditional name="mode_cond">
+    <param name="mode" type="select" label="Supply specific motif patterns, or report any motif?" help="Make bed features for all motifs or for nominated specific motifs">
+      <option selected="True" value="ALL">Report any STR motifs</option>
+      <option value="SPECIFIC">Report only specific nominated motifs</option>
     </param>
-    <param name="perfect" type="select" label="Include all *perfect* STRs" help="Strictly defined STR. Flags can be multiple and will combine. At least one must be set." display="radio">
-      <option value="set">Set this flag</option>
-      <option value="notset">Do not set this flag</option>
-    </param>
-    <param name="approximate" type="select" label="Include also all *approximate* STRs." help="This gives about 3 fold additional bed features compared to the perfect flag. Flags can be multiple and will combine. At least one must be set." display="radio">
-      <option value="notset">Do not set this flag</option>
-      <option value="set">Set this flag</option>
-    </param>
-    <param name="generic" type="select" label="Include all *generic* STRs" help="This finds many additional bed features compared to the perfect or approximate flags. Flags can be multiple and will combine. At least one must be set." display="radio">
-      <option value="notset">Do not set this flag</option>
-      <option value="set">Set this flag</option>
-    </param>
+    <when value="ALL">
+      <param name="subset" type="select" multiple="true" label="Choose one or more specific motif lengths to include" help="Make bed features from all motifs of these lengths">
+        <option value="MONO" selected="False">All mononucleotide motifs (e.g. G)</option>
+        <option value="DI">All dinucleotide motifs (e.g. GA)</option>
+        <option value="TRI">All trinucleotide motifs (e.g. GCT)</option>
+        <option value="TETRA">All tetranucleotide motifs (e.g. GCTA)</option>
+        <option value="PENTA">All pentanucleotide motifs (e.g. GCTAC)</option>
+        <option value="HEPTA">All heptanucleotide motifs (e.g. GCTACA)</option>
+      </param>
+      <param name="monomin" type="integer" value="2" min="2" label="Minimum number of repeats of each monomer motif to report" 
+        help="WARNING: Monomers must have minimum repeats of 2 to prevent every single nucleotide being reported as a feature!. 2 is the minimum allowed here"/>
+      <param name="dimin" type="integer" value="2" min="1" label="Minimum number of repeats of each dimer motif to report"/>
+      <param name="trimin" type="integer" value="2" min="1" label="Minimum number of repeats of each trimer motif to report"/>
+      <param name="tetramin" type="integer" value="2" min="1" label="Minimum number of repeats of each tetramer motif to report"/>
+      <param name="pentamin" type="integer" value="2" min="1" label="Minimum number of repeats of each pentamer motif to report"/>
+      <param name="heptamin" type="integer" value="2" min="1" label="Minimum number of repeats of each heptamer motif to report"/>
+    </when>
+    <when value="SPECIFIC">
+      <param name="specific" type="text" label="Supply a specific motif pattern using uppercase ACGT nucleotide abbreviations. Separate multiple patterns with commas such as GA,GC" 
+         help="Make bed features only for the nominated specific motifs."/>
+      <param name="minreps" type="integer" value="2" min="1" label="Minimum number of repeats of each of these motifs to report" 
+        help="Short tandem repeats require 2 or more consecutive motifs by definition. WARNING: If monomers are included, every single matching base will be reported as a STR if minimum repeats = 1!"/>
+    </when>
+    </conditional>
   </inputs>
   <outputs>
-    <data name="bedall" format="bed" label="$reportme STR from $fasta.element_identifier" hidden="false">
-       <filter>reportme !="VGP"</filter>
-    </data>
-    <data name="bedGC" format="bed" label="GC from $fasta.element_identifier" hidden="false">
-       <filter>reportme == "VGP"</filter>
-    </data>
-     <data name="bedAT" format="bed" label="AT from $fasta.element_identifier" hidden="false">
-       <filter>reportme == "VGP"</filter>
-    </data>
-    <data name="bedGA" format="bed" label="GA from $fasta.element_identifier" hidden="false">
-       <filter>reportme == "VGP"</filter>
-    </data>
-     <data name="bedTC" format="bed" label="TC from $fasta.element_identifier" hidden="false">
-       <filter>reportme =="VGP"</filter>
-    </data>
+    <data name="bed" format="bed" label="STR from $fasta.element_identifier" hidden="false"/>
   </outputs>
   <tests>
-    <test expect_num_outputs="4">
+    <test expect_num_outputs="1">
       <conditional name="reference_genome">
           <param name="genome_type_select" value="history"/>
-          <param name="fasta" value="mouse5bit.fa"/>
+          <param name="fasta" value="humsamp.fa"/>
       </conditional>
-      <output name="bedGA" value="bedGA_sample" compare="diff" lines_diff="0"/>
-      <output name="bedTC" value="bedTC_sample" compare="diff" lines_diff="0"/>
-      <output name="bedGC" value="bedGC_sample" compare="diff" lines_diff="0"/>
-      <output name="bedAT" value="bedAT_sample" compare="diff" lines_diff="0"/>
-      <param name="reportme" value="VGP"/>
-      <param name="perfect" value="set"/>
-      <param name="approximate" value="notset"/>
-      <param name="generic" value="notset"/>
+      <conditional name="mode_cond">
+          <param name="mode" value="ALL"/>
+          <param name="subset" value="DI,TRI,TETRA,PENTA,HEPTA"/>
+          <param name="dimin" value="2"/>
+          <param name="trimin" value="2"/>
+          <param name="tetramin" value="2"/>
+          <param name="pentamin" value="2"/>
+          <param name="heptamin" value="2"/>
+      </conditional>
+      <output name="bed" value="bed_sample" compare="diff" lines_diff="0"/>
+    </test>    
+    <test expect_num_outputs="1">
+      <conditional name="reference_genome">
+          <param name="genome_type_select" value="history"/>
+          <param name="fasta" value="humsamp.fa"/>
+      </conditional>
+      <conditional name="mode_cond">
+          <param name="mode" value="SPECIFIC"/>
+          <param name="specific" value="GC"/>
+          <param name="minreps" value="2"/>
+      </conditional>
+      <output name="bed" value="dibed_sample" compare="diff" lines_diff="0"/>
     </test>
   </tests>
   <help><![CDATA[
@@ -118,7 +138,7 @@
 
  A fasta file must be supplied for processing.
 
- Different subsets of STR may be selected for output. Perfect STRs are the default, but any combination with one or more of pefect, approxinate and generic.
+ Different subsets of STR may be selected for output.
   
  Designed to build some of the microsatellite tracks from https://github.com/arangrhie/T2T-Polish/tree/master/pattern for the VGP.
  
