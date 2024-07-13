@@ -22,10 +22,10 @@ def write_ssrs(args):
     bed = []
     specific = None
     if args.specific:
-        specific = args.specific.split(',')
+        specific = args.specific.uppercase().split(',')
     fa = Fastx(args.fasta, uppercase=True)
     for name, seq in fa:
-        trs = pytrf.STRFinder(
+        for ssr in pytrf.STRFinder(
             name,
             seq,
             args.monomin,
@@ -33,9 +33,8 @@ def write_ssrs(args):
             args.trimin,
             args.tetramin,
             args.pentamin,
-            args.heptamin,
-        )
-        for ssr in trs:
+            args.hexamin,
+        ):
             row = (
                 ssr.chrom,
                 ssr.start,
@@ -56,7 +55,7 @@ def write_ssrs(args):
                 bed.append(row)
             elif args.penta and len(ssr.motif) == 5:
                 bed.append(row)
-            elif args.hepta and len(ssr.motif) == 6:
+            elif args.hexa and len(ssr.motif) == 6:
                 bed.append(row)
     bedtosort = [(x[0], x[1], x[2], x) for x in bed]
     bedtosort.sort()
@@ -74,13 +73,13 @@ if __name__ == "__main__":
     a("--tri", action="store_true")
     a("--tetra", action="store_true")
     a("--penta", action="store_true")
-    a("--hepta", action="store_true")
+    a("--hexa", action="store_true")
     a("--mono", action="store_true")
     a("--dimin", default=2, type=int)
     a("--trimin", default=2, type=int)
     a("--tetramin", default=2, type=int)
     a("--pentamin", default=2, type=int)
-    a("--heptamin", default=2, type=int)
+    a("--hexamin", default=2, type=int)
     a("--monomin", default=2, type=int)
     a("-f", "--fasta", default="humsamp.fa")
     a("-b", "--bed", default="humsamp.bed")
