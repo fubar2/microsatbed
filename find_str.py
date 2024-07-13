@@ -15,14 +15,14 @@ def write_ssrs(args):
     """
     The integers in the call change the minimum repeats for mono-, di-, tri-, tetra-, penta-, hexa-nucleotide repeats
     ssrs = pytrf.STRFinder(name, seq, 10, 6, 4, 3, 3, 3)
-    NOTE: STRs with dinucleotides GA and AG are reported separately by https://github.com/marbl/seqrequester.
+    NOTE: Dinucleotides GA and AG are reported separately by https://github.com/marbl/seqrequester.
     The reversed pair STRs are about as common in the documentation sample.
     Sequence read bias might be influenced by GC density or some other specific motif.
     """
     bed = []
     specific = None
     if args.specific:
-        specific = args.specific.uppercase().split(',')
+        specific = args.specific.upper().split(',')
     fa = Fastx(args.fasta, uppercase=True)
     for name, seq in fa:
         for ssr in pytrf.STRFinder(
@@ -37,12 +37,12 @@ def write_ssrs(args):
         ):
             row = (
                 ssr.chrom,
-                ssr.start,
+                ssr.start-1,
                 ssr.end,
                 ssr.motif,
                 ssr.repeat,
                 ssr.length,
-            )
+            ) # pytrf reports 
             if args.specific and ssr.motif in specific:
                 bed.append(row)
             elif args.mono and len(ssr.motif) == 1:
