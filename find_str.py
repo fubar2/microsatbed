@@ -1,9 +1,7 @@
 import argparse
 
-from pyfastx import Fastx  # 0.5.2
-
 import pytrf  # 1.3.0
-
+from pyfastx import Fastx  # 0.5.2
 
 """
 Allows all STR or those for a subset of motifs to be written to a bed file
@@ -22,27 +20,41 @@ def write_ssrs(args):
     bed = []
     specific = None
     if args.specific:
-        specific = args.specific.upper().split(',')
+        specific = args.specific.upper().split(",")
     fa = Fastx(args.fasta, uppercase=True)
     for name, seq in fa:
-        for ssr in pytrf.STRFinder(
-            name,
-            seq,
-            args.monomin,
-            args.dimin,
-            args.trimin,
-            args.tetramin,
-            args.pentamin,
-            args.hexamin,
-        ):
+        if args.specific:
+            ssrs = pytrf.STRFinder(
+                name,
+                seq,
+                args.minreps,
+                args.minreps,
+                args.minreps,
+                args.minreps,
+                args.minreps,
+                args.minreps,
+            )
+        else:
+            ssrs = pytrf.STRFinder(
+                name,
+                seq,
+                args.monomin,
+                args.dimin,
+                args.trimin,
+                args.tetramin,
+                args.pentamin,
+                args.hexamin,
+            )
+        for ssr in ssrs:
             row = (
                 ssr.chrom,
-                ssr.start-1,
+                ssr.start - 1,
                 ssr.end,
                 ssr.motif,
                 ssr.repeat,
                 ssr.length,
-            ) # pytrf reports 
+            )
+            # pytrf reports a 1 based start position so start-1 fixes the bed interval lengths
             if args.specific and ssr.motif in specific:
                 bed.append(row)
             elif args.mono and len(ssr.motif) == 1:
@@ -57,10 +69,8 @@ def write_ssrs(args):
                 bed.append(row)
             elif args.hexa and len(ssr.motif) == 6:
                 bed.append(row)
-    bedtosort = [(x[0], x[1], x[2], x) for x in bed]
-    bedtosort.sort()
-    sbed = [x[3] for x in bedtosort]
-    obed = ["%s\t%d\t%d\t%s_%d\t%d" % x for x in sbed]
+    bed.sort()
+    obed = ["%s\t%d\t%d\t%s_%d\t%d" % x for x in bed]
     with open(args.bed, "w") as outbed:
         outbed.write("\n".join(obed))
         outbed.write("\n")
